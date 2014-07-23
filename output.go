@@ -7,11 +7,14 @@ import (
 	"os"
 )
 
+type StylerFunc func(class, text string, data interface{}) string
+type FormatterFunc func(class string, data interface{}, formatter FormatterFunc) string
+
 type Output struct {
 	Padding   int
 	Writer    io.Writer
-	Styler    func(class, text string, data interface{}) string
-	Formatter func(class string, data interface{}) string
+	Styler    StylerFunc
+	Formatter FormatterFunc
 }
 
 func PaddingBuffer(padding int) *bytes.Buffer {
@@ -48,11 +51,21 @@ func (o *Output) Styling(class, text string, data interface{}) string {
 	return text
 }
 
-func (o *Output) Format(class string, data interface{}) string {
-	if o.Formatter != nil {
-		return o.Formatter(class, data)
-	} else if data == nil {
+func defaultFormatter(class string, data interface{}, formatter FormatterFunc) string {
+	if data == nil {
 		return ""
 	}
+	switch data.(type) {
+	case float32, float64:
+		return fmt.Sprintf("%g", data.(float64))
+	}
 	return fmt.Sprintf("%v", data)
+}
+
+func (o *Output) Format(class string, data interface{}) string {
+	if o.Formatter != nil {
+		return o.Formatter(class, data, defaultFormatter)
+	} else {
+		return defaultFormatter(class, data, nil)
+	}
 }

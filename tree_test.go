@@ -135,7 +135,7 @@ func TestTreePrintFormatAndStyling(t *testing.T) {
 			return text
 		}
 	}
-	tv.Formatter = func(class string, data interface{}) string {
+	tv.Formatter = func(class string, data interface{}, formatter FormatterFunc) string {
 		switch data.(type) {
 		case string:
 			return "\"" + data.(string) + "\""

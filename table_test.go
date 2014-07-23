@@ -2,6 +2,7 @@ package cliview
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 )
 
@@ -180,6 +181,40 @@ func TestTablePrintStyling(t *testing.T) {
 		"+------+--+\n"+
 		"|<table:row:col1>      </table:row:col1>|<table:row:col2>  </table:row:col2>|\n"+
 		"+------+--+\n" {
+		t.Errorf("Unexpected output\n%v", result)
+	}
+}
+
+func TestTableColumnFormatter(t *testing.T) {
+	buf := new(bytes.Buffer)
+	tv := &Table{
+		Output: Output{Writer: buf, Padding: 4},
+		Columns: []Column{
+			Column{Title: "Column1", Field: "col1", MaxWidth: 5},
+			Column{Title: "Column2", Field: "col2", Width: 2,
+				Formatter: func(class string, data interface{}, formatter FormatterFunc) string {
+					if strings.HasPrefix(class, "table:row:") {
+						return ""
+					} else {
+						return formatter(class, data, nil)
+					}
+				},
+			},
+		},
+	}
+	tv.Print([]map[string]interface{}{
+		map[string]interface{}{
+			"col1": "123456",
+			"col2": "abcde",
+		},
+	})
+	result := buf.String()
+	if result != ""+
+		"    +-----+--+\n"+
+		"    |Co...|C.|\n"+
+		"    +-----+--+\n"+
+		"    |12...|  |\n"+
+		"    +-----+--+\n" {
 		t.Errorf("Unexpected output\n%v", result)
 	}
 }

@@ -13,11 +13,12 @@ const (
 )
 
 type Column struct {
-	Title    string // title to be displayed
-	Field    string // field name for retrieving data
-	Width    int    // column width, >0 fixed, =0 auto, <0 percentage
-	MaxWidth int    // maximum column width
-	Align    int
+	Title     string // title to be displayed
+	Field     string // field name for retrieving data
+	Width     int    // column width, >0 fixed, =0 auto, <0 percentage
+	MaxWidth  int    // maximum column width
+	Align     int
+	Formatter FormatterFunc
 }
 
 type Table struct {
@@ -40,7 +41,7 @@ func (tv *Table) Print(data []map[string]interface{}) {
 		} else if tv.Columns[i].Width == 0 {
 			width := len(tv.Columns[i].Title)
 			for _, v := range data {
-				valLen := len(tv.Format("table:row:"+tv.Columns[i].Field, v[tv.Columns[i].Field]))
+				valLen := len(tv.formatCell("table:row:", tv.Columns[i], v))
 				if valLen > width {
 					width = valLen
 				}
@@ -86,10 +87,10 @@ func (tv *Table) Print(data []map[string]interface{}) {
 	// print rows
 	for _, d := range data {
 		row = tv.startPrintRow()
-		for _, c := range tv.columns {
+		for i, c := range tv.columns {
 			val := d[c.Field]
 			if c.Width > 0 {
-				valStr := tv.Format("table:row:"+c.Field, val)
+				valStr := tv.formatCell("table:row:", tv.Columns[i], d)
 				row.column("row", valStr, &c, val)
 			} else {
 				row.column("row", "", &c, val)
@@ -97,6 +98,17 @@ func (tv *Table) Print(data []map[string]interface{}) {
 		}
 		row.end()
 	}
+}
+
+func (tv *Table) formatCell(classPrefix string, col Column, row map[string]interface{}) string {
+	val := row[col.Field]
+	class := classPrefix + col.Field
+	if col.Formatter != nil {
+		return col.Formatter(class, val, func(class string, data interface{}, formatter FormatterFunc) string {
+			return tv.Format(class, data)
+		})
+	}
+	return tv.Format(class, val)
 }
 
 func ellipsis(text string, width int) string {
