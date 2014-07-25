@@ -18,6 +18,7 @@ type Column struct {
 	Width     int    // column width, >0 fixed, =0 auto, <0 percentage
 	MaxWidth  int    // maximum column width
 	Align     int
+	Fetcher   func(column Column, row map[string]interface{}) interface{}
 	Formatter FormatterFunc
 }
 
@@ -101,7 +102,12 @@ func (tv *Table) Print(data []map[string]interface{}) {
 }
 
 func (tv *Table) formatCell(classPrefix string, col Column, row map[string]interface{}) string {
-	val := row[col.Field]
+	var val interface{}
+	if col.Fetcher != nil {
+		val = col.Fetcher(col, row)
+	} else {
+		val = row[col.Field]
+	}
 	class := classPrefix + col.Field
 	if col.Formatter != nil {
 		return col.Formatter(class, val, func(class string, data interface{}, formatter FormatterFunc) string {

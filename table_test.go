@@ -218,3 +218,34 @@ func TestTableColumnFormatter(t *testing.T) {
 		t.Errorf("Unexpected output\n%v", result)
 	}
 }
+
+func TestTableColumnFetcher(t *testing.T) {
+	buf := new(bytes.Buffer)
+	tv := &Table{
+		Output: Output{Writer: buf},
+		Columns: []Column{
+			Column{Title: "Column1", Field: "col1"},
+			Column{Title: "Column2", Field: "col2"},
+			Column{Title: "Sum", Field: "sum",
+				Fetcher: func(col Column, row map[string]interface{}) interface{} {
+					return row["col1"].(int) + row["col2"].(int)
+				},
+			},
+		},
+	}
+	tv.Print([]map[string]interface{}{
+		map[string]interface{}{
+			"col1": 10,
+			"col2": 19,
+		},
+	})
+	result := buf.String()
+	if result != ""+
+		"+-------+-------+---+\n"+
+		"|Column1|Column2|Sum|\n"+
+		"+-------+-------+---+\n"+
+		"|10     |19     |29 |\n"+
+		"+-------+-------+---+\n" {
+		t.Errorf("Unexpected output\n%v", result)
+	}
+}

@@ -191,3 +191,42 @@ func TestTreePrintFormatAndStyling(t *testing.T) {
 		t.Errorf("Unexpected output\n%v", result)
 	}
 }
+
+func TestTreePrintFilterKeys(t *testing.T) {
+	buf := new(bytes.Buffer)
+	tv := &Tree{
+		Output: Output{
+			Writer: buf,
+			Formatter: func(class string, data interface{}, formatter FormatterFunc) string {
+				if class == "tree:key:map1" && data.(string) == "arr11" {
+					return ""
+				}
+				return formatter(class, data, nil)
+			},
+		},
+		Indent: DefaultIndent,
+	}
+	tv.Print(map[string]interface{}{
+		"map1": map[string]interface{}{
+			"map11": map[string]interface{}{},
+			"arr11": []interface{}{},
+			"map12": map[string]interface{}{
+				"key121": "Hello",
+			},
+			"arr12": []interface{}{
+				"Hello", true,
+			},
+		},
+	})
+	result := buf.String()
+	if result != ""+
+		"map1: \n"+
+		"    arr12: \n"+
+		"      - Hello\n"+
+		"      - true\n"+
+		"    map11: \n"+
+		"    map12: \n"+
+		"        key121: Hello\n" {
+		t.Errorf("Unexpected output\n%v", result)
+	}
+}

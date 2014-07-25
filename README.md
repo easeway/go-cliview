@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/easeway/go-cliview.png?branch=master)](https://travis-ci.org/easeway/go-cliview)
+
 # CLI Views
 Print complicated data objects in tree view or table view, with customizable formatting and styling support.
 
@@ -63,7 +65,7 @@ func ShowInTreeView(data interface{}) {
 		Output: cv.Output{		// Output is optional
 			Padding: 10,		// left paddings
 			Writer: os.Stderr,	// specify output, default is os.Stdout
-			Formatter: func (class string, data interface{}) string {
+			Formatter: func (class string, data interface{},, formatter cv.FormatterFunc) string {
 				// custom formatter
 				// 'class' can be:
 				//    - 'tree:key:path'
@@ -78,7 +80,12 @@ func ShowInTreeView(data interface{}) {
 				// path for "Jack" is 'tree:val:root/key1/0/name',
 				// path for "Alice" is 'tree:val:root/key1/1/name',
 				// path for "key1" is 'tree:key:root/key1'
-
+				//
+				// if you don't know how to format, simply call chained "formatter"
+				// return formatter(class, data, nil)
+				//
+				// When class is 'tree:key:...', it is used for filtering keys rather than renaming keys
+				// (renaming keys should use Styler). If an empty string is returned, the key is skipped.
 				...
 			},
 			Styler: func (class, text string, data interface{}) string {
@@ -102,7 +109,7 @@ func ShowInTableView(data []map[string]interface{}) {
 		Output: cv.Output{		// Output is optional
 			Padding: 10,		// left paddings
 			Writer: os.Stderr,	// specify output, default is os.Stdout
-			Formatter: func (class string, data interface{}) string {
+			Formatter: func (class string, data interface{}, formatter cv.FormatterFunc) string {
 				// custom formatter
 				// 'class' can be: 'table:row:field'
 				...
@@ -123,6 +130,12 @@ func ShowInTableView(data []map[string]interface{}) {
 				MaxWidth: 10,	// limit the maximum column Width
 				Align: cv.AlignLeft,	// this is default
 										// can be cv.AlignRight, cv.AlignMiddle
+				Fetcher: func(col cv.Column, row map[string]interface{}) interface{} {
+					// optional function for fetching cell data with special logic.
+					// with this function, the column can be a virtual column which doesn't
+					// require the Field in the table data but calculated from other fields
+				},
+				Formatter: ...,  // same as Output.Formatter but operates on column level
 			},
 			...
 		},

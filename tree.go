@@ -34,7 +34,9 @@ func (tv *Tree) render(obj interface{}, path string, w io.Writer, padding int, s
 		} else {
 			keys := make([]string, 0, len(mapObj))
 			for k := range mapObj {
-				keys = append(keys, k)
+				if tv.Format("tree:key:"+path, k) != "" {
+					keys = append(keys, k)
+				}
 			}
 			sort.Strings(keys)
 			if skipPadding && !forCntr {
