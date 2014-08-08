@@ -60,6 +60,26 @@ func (tv *Tree) render(obj interface{}, path string, w io.Writer, padding int, s
 				tv.render(v, subpath, w, padding+tv.Indent, true, false)
 			}
 		}
+	case map[interface{}]interface{}:
+		converted := make(map[string]interface{})
+		for k, v := range obj.(map[interface{}]interface{}) {
+			converted[fmt.Sprintf("%v", k)] = v
+		}
+		tv.render(converted, path, w, padding, skipPadding, forCntr)
+	case []map[string]interface{}:
+		data := obj.([]map[string]interface{})
+		converted := make([]interface{}, len(data))
+		for i, v := range data {
+			converted[i] = v
+		}
+		tv.render(converted, path, w, padding, skipPadding, forCntr)
+	case []map[interface{}]interface{}:
+		data := obj.([]map[interface{}]interface{})
+		converted := make([]interface{}, len(data))
+		for i, v := range data {
+			converted[i] = v
+		}
+		tv.render(converted, path, w, padding, skipPadding, forCntr)
 	case []interface{}:
 		if arrObj := obj.([]interface{}); len(arrObj) == 0 {
 			empty = true
@@ -74,8 +94,11 @@ func (tv *Tree) render(obj interface{}, path string, w io.Writer, padding int, s
 					padStr = padBuf.String()
 				}
 			}
-			if len(padStr) >= 2 {
+			if len(padStr) >= tv.Padding+2 {
 				padStr = padStr[0:len(padStr)-2] + "- "
+			} else {
+				padStr = PaddingBuffer(tv.Padding+tv.Indent-2).String() + "- "
+				padding = tv.Padding + tv.Indent
 			}
 			for i, v := range arrObj {
 				fmt.Fprintf(w, padStr)

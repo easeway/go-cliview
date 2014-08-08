@@ -119,6 +119,26 @@ func TestTreePrintMixed(t *testing.T) {
 	}
 }
 
+func TestTreePrintArrayMap(t *testing.T) {
+	buf := new(bytes.Buffer)
+	tv := &Tree{
+		Output: Output{Writer: buf},
+		Indent: DefaultIndent,
+	}
+	tv.Print([]map[string]interface{}{
+		map[string]interface{}{
+			"name": "Jackson",
+			"key":  121,
+		},
+	})
+	result := buf.String()
+	if result != ""+
+		"  - key: 121\n"+
+		"    name: Jackson\n" {
+		t.Errorf("Unexpected output\n%v", result)
+	}
+}
+
 func TestTreePrintFormatAndStyling(t *testing.T) {
 	buf := new(bytes.Buffer)
 	tv := &Tree{
