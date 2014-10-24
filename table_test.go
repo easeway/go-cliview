@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+var TestBorder = "+-++|||+-+++-++|||+-++"
+
 func TestTablePrintWidthPercentage(t *testing.T) {
 	buf := new(bytes.Buffer)
 	tv := &Table{
@@ -16,6 +18,7 @@ func TestTablePrintWidthPercentage(t *testing.T) {
 			Column{Title: "Column3", Field: "col3", Width: -60},
 		},
 		MaxWidth: 40,
+		Border:   TestBorder,
 	}
 	tv.Print([]map[string]interface{}{
 		map[string]interface{}{
@@ -43,6 +46,7 @@ func TestTablePrintEllipsis(t *testing.T) {
 			Column{Title: "Column1", Field: "col1", MaxWidth: 5},
 			Column{Title: "Column2", Field: "col2", Width: 2},
 		},
+		Border: TestBorder,
 	}
 	tv.Print([]map[string]interface{}{
 		map[string]interface{}{
@@ -70,6 +74,7 @@ func TestTablePrintWidthAuto(t *testing.T) {
 			Column{Title: "C2", Field: "col2", Width: -100},
 		},
 		MaxWidth: 9,
+		Border:   TestBorder,
 	}
 	tv.Print([]map[string]interface{}{
 		map[string]interface{}{
@@ -114,6 +119,7 @@ func TestTablePrintPadding(t *testing.T) {
 			Column{Title: "Column1", Field: "col1", MaxWidth: 5},
 			Column{Title: "Column2", Field: "col2", Width: 2},
 		},
+		Border: TestBorder,
 	}
 	tv.Print([]map[string]interface{}{
 		map[string]interface{}{
@@ -149,6 +155,7 @@ func TestTablePrintStyling(t *testing.T) {
 			Column{Title: "C2", Field: "col2"},
 		},
 		MaxWidth: 9,
+		Border:   TestBorder,
 	}
 	tv.Print([]map[string]interface{}{
 		map[string]interface{}{
@@ -201,6 +208,7 @@ func TestTableColumnFormatter(t *testing.T) {
 				},
 			},
 		},
+		Border: TestBorder,
 	}
 	tv.Print([]map[string]interface{}{
 		map[string]interface{}{
@@ -232,6 +240,7 @@ func TestTableColumnFetcher(t *testing.T) {
 				},
 			},
 		},
+		Border: TestBorder,
 	}
 	tv.Print([]map[string]interface{}{
 		map[string]interface{}{

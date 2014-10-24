@@ -45,7 +45,7 @@ func (tv *Tree) render(obj interface{}, path string, w io.Writer, padding int, s
 			}
 			for _, k := range keys {
 				v := mapObj[k]
-				keyStr := tv.Styling("tree:key:"+path, k, v)
+				keyStr := tv.Styling("tree:key:"+path, k, v, nil)
 				if skipPadding {
 					fmt.Fprintf(w, "%s: ", keyStr)
 					skipPadding = false
@@ -117,7 +117,7 @@ func (tv *Tree) render(obj interface{}, path string, w io.Writer, padding int, s
 				padStr = ""
 			}
 			class := "tree:val:" + path
-			fmt.Fprintln(w, padStr+tv.Styling(class, tv.Format(class, obj), obj))
+			fmt.Fprintln(w, padStr+tv.Styling(class, tv.Format(class, obj), obj, nil))
 		}
 	}
 

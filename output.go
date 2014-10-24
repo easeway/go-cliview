@@ -44,9 +44,12 @@ func (o *Output) Out() io.Writer {
 	return os.Stdout
 }
 
-func (o *Output) Styling(class, text string, data interface{}) string {
-	if o.Styler != nil {
-		return o.Styler(class, text, data)
+func (o *Output) Styling(class, text string, data interface{}, styler StylerFunc) string {
+	if styler == nil {
+		styler = o.Styler
+	}
+	if styler != nil {
+		return styler(class, text, data)
 	}
 	return text
 }
