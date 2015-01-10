@@ -250,3 +250,135 @@ func TestTreePrintFilterKeys(t *testing.T) {
 		t.Errorf("Unexpected output\n%v", result)
 	}
 }
+
+func TestTreeKeyRanker(t *testing.T) {
+	buf := new(bytes.Buffer)
+	tv := &Tree{
+		Output: Output{Writer: buf},
+		Indent: DefaultIndent,
+		KeyRanker: func(path, key string) int {
+			return 255 - int(key[0])
+		},
+	}
+	tv.Print(map[string]interface{}{
+		"a": "a",
+		"b": "b",
+		"c": "c",
+		"0": "0",
+	})
+	result := buf.String()
+	if result != ""+
+		"c: c\n"+
+		"b: b\n"+
+		"a: a\n"+
+		"0: 0\n" {
+		t.Errorf("Unexpected output\n%v", result)
+	}
+}
+
+func TestTreeArrayKeyRanker(t *testing.T) {
+	buf := new(bytes.Buffer)
+	tv := &Tree{
+		Output:    Output{Writer: buf},
+		Indent:    DefaultIndent,
+		KeyRanker: ArrayKeyRanker([]string{"b", "c", "a"}),
+	}
+	tv.Print(map[string]interface{}{
+		"a": "a",
+		"b": "b",
+		"c": "c",
+		"1": "1",
+		"0": "0",
+	})
+	result := buf.String()
+	if result != ""+
+		"b: b\n"+
+		"c: c\n"+
+		"a: a\n"+
+		"0: 0\n"+
+		"1: 1\n" {
+		t.Errorf("Unexpected output\n%v", result)
+	}
+}
+
+func TestTreeSuffixArrayKeyRanker(t *testing.T) {
+	buf := new(bytes.Buffer)
+	tv := &Tree{
+		Output: Output{Writer: buf},
+		Indent: DefaultIndent,
+		KeyRanker: SuffixArrayKeyRanker(map[string][]string{
+			"":   {"b", "c", "a"},
+			"l2": {"c", "a", "b"},
+		}),
+	}
+	tv.Print(map[string]interface{}{
+		"a": "a",
+		"b": "b",
+		"c": "c",
+		"l2": map[string]interface{}{
+			"a": "a",
+			"b": "b",
+			"c": "c",
+		},
+	})
+	result := buf.String()
+	if result != ""+
+		"b: b\n"+
+		"c: c\n"+
+		"a: a\n"+
+		"l2: \n"+
+		"    c: c\n"+
+		"    a: a\n"+
+		"    b: b\n" {
+		t.Errorf("Unexpected output\n%v", result)
+	}
+}
+
+func TestTreePatternArrayKeyRanker(t *testing.T) {
+	buf := new(bytes.Buffer)
+	tv := &Tree{
+		Output: Output{Writer: buf},
+		Indent: DefaultIndent,
+		KeyRanker: PatternArrayKeyRanker(map[string][]string{
+			"":            {"b", "c", "a", "l2"},
+			"l2$":         {"c", "a", "b"},
+			"list/[^/]+$": {"x114", "l72", "l68"},
+		}),
+	}
+	tv.Print(map[string]interface{}{
+		"a": "a",
+		"b": "b",
+		"c": "c",
+		"l2": map[string]interface{}{
+			"a": "a",
+			"b": "b",
+			"c": "c",
+		},
+		"list": []interface{}{
+			map[string]interface{}{
+				"l4.1": "41",
+				"x114": "114",
+			},
+			map[string]interface{}{
+				"l68": "68",
+				"l72": "72",
+			},
+		},
+	})
+	result := buf.String()
+	if result != ""+
+		"b: b\n"+
+		"c: c\n"+
+		"a: a\n"+
+		"l2: \n"+
+		"    c: c\n"+
+		"    a: a\n"+
+		"    b: b\n"+
+		"list: \n"+
+		"  - x114: 114\n"+
+		"    l4.1: 41\n"+
+		"  - l72: 72\n"+
+		"    l68: 68\n" {
+		t.Errorf("Unexpected output\n%v", result)
+	}
+}

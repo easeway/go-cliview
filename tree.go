@@ -3,16 +3,60 @@ package cliview
 import (
 	"fmt"
 	"io"
+	"math"
+	"regexp"
 	"sort"
+	"strings"
 )
 
 const (
 	DefaultIndent = 4
 )
 
+type KeyRankFunc func(path, key string) int
+
+func ArrayKeyRanker(keys []string) KeyRankFunc {
+	return func(path, key string) int {
+		for n, k := range keys {
+			if k == key {
+				return n
+			}
+		}
+		return -1
+	}
+}
+
+func PatternArrayKeyRanker(dict map[string][]string) KeyRankFunc {
+	return func(path, key string) int {
+		for pattern, keys := range dict {
+			if path == "" && pattern == "" {
+				return ArrayKeyRanker(keys)(path, key)
+			} else if pattern != "" {
+				if matched, err := regexp.MatchString(pattern, path); matched && err == nil {
+					return ArrayKeyRanker(keys)(path, key)
+				}
+			}
+		}
+		return -1
+	}
+}
+
+func SuffixArrayKeyRanker(dict map[string][]string) KeyRankFunc {
+	return func(path, key string) int {
+		for suffix, keys := range dict {
+			if (path == "" && suffix == "") ||
+				(suffix != "" && strings.HasSuffix(path, suffix)) {
+				return ArrayKeyRanker(keys)(path, key)
+			}
+		}
+		return -1
+	}
+}
+
 type Tree struct {
 	Output
-	Indent int
+	Indent    int
+	KeyRanker KeyRankFunc
 }
 
 func NewTree() *Tree {
@@ -21,6 +65,39 @@ func NewTree() *Tree {
 
 func (tv *Tree) Print(obj interface{}) {
 	tv.render(obj, "", tv.Out(), tv.Padding, false, false)
+}
+
+func (tv *Tree) RankKey(path, key string) uint {
+	if tv.KeyRanker != nil {
+		if iRank := tv.KeyRanker(path, key); iRank >= 0 {
+			return uint(iRank)
+		}
+	}
+	return math.MaxUint32
+}
+
+type keyRank struct {
+	key  string
+	rank uint
+}
+
+type keySorter struct {
+	keys []*keyRank
+}
+
+func (s *keySorter) Len() int {
+	return len(s.keys)
+}
+
+func (s *keySorter) Swap(i, j int) {
+	s.keys[i], s.keys[j] = s.keys[j], s.keys[i]
+}
+
+func (s *keySorter) Less(i, j int) bool {
+	if s.keys[i].rank == s.keys[j].rank {
+		return s.keys[i].key < s.keys[j].key
+	}
+	return s.keys[i].rank < s.keys[j].rank
 }
 
 func (tv *Tree) render(obj interface{}, path string, w io.Writer, padding int, skipPadding, forCntr bool) {
@@ -32,20 +109,21 @@ func (tv *Tree) render(obj interface{}, path string, w io.Writer, padding int, s
 		if mapObj := obj.(map[string]interface{}); len(mapObj) == 0 {
 			empty = true
 		} else {
-			keys := make([]string, 0, len(mapObj))
+			keys := &keySorter{keys: make([]*keyRank, 0, len(mapObj))}
 			for k := range mapObj {
 				if tv.Format("tree:key:"+path, k) != "" {
-					keys = append(keys, k)
+					rank := tv.RankKey(path, k)
+					keys.keys = append(keys.keys, &keyRank{key: k, rank: rank})
 				}
 			}
-			sort.Strings(keys)
+			sort.Sort(keys)
 			if skipPadding && !forCntr {
 				fmt.Fprintln(w, "")
 				skipPadding = false
 			}
-			for _, k := range keys {
-				v := mapObj[k]
-				keyStr := tv.Styling("tree:key:"+path, k, v, nil)
+			for _, kr := range keys.keys {
+				v := mapObj[kr.key]
+				keyStr := tv.Styling("tree:key:"+path, kr.key, v, nil)
 				if skipPadding {
 					fmt.Fprintf(w, "%s: ", keyStr)
 					skipPadding = false
@@ -56,7 +134,7 @@ func (tv *Tree) render(obj interface{}, path string, w io.Writer, padding int, s
 				if len(path) > 0 {
 					subpath += "/"
 				}
-				subpath += k
+				subpath += kr.key
 				tv.render(v, subpath, w, padding+tv.Indent, true, false)
 			}
 		}
