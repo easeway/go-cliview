@@ -19,7 +19,7 @@ func ShowTable(data []interface{}) {
 			cv.Column{Title: "Office Address", Field: "office", Width: -50},	// 50% width
 		},
 		MaxWidth: 80,
-	}.Print(data)
+	}.HideColumns("Age", "Home Address").Print(data)
 }
 
 func ShowJSON(obj map[string]interface{}) {

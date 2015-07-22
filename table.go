@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -93,35 +94,48 @@ type Table struct {
 	Columns  []Column // Column definitions
 	MaxWidth int      // maximum table width
 
-	columns []Column // actuall columns
+	columns    []Column // actuall columns
+	hiddenCols map[string]bool
+}
+
+func (tv *Table) HideColumns(names ...string) *Table {
+	if tv.hiddenCols == nil {
+		tv.hiddenCols = make(map[string]bool)
+	}
+	for _, name := range names {
+		tv.hiddenCols[strings.ToLower(name)] = true
+	}
+	return tv
 }
 
 func (tv *Table) Print(data []map[string]interface{}) {
 	// calculate column width
-	tv.columns = make([]Column, len(tv.Columns))
+	tv.columns = make([]Column, 0, len(tv.Columns))
 	fixedWidth := 0
 	for i := 0; i < len(tv.Columns); i++ {
-		if tv.Columns[i].Width > 0 {
-			tv.columns[i].Width = tv.Columns[i].Width
+		if tv.hiddenCols != nil && tv.hiddenCols[strings.ToLower(tv.Columns[i].Title)] {
+			continue
+		}
+		col := tv.Columns[i]
+		if col.Width > 0 {
 			fixedWidth += tv.Columns[i].Width
-		} else if tv.Columns[i].Width == 0 {
-			width := textWidth(tv.Columns[i].Title)
+		} else if col.Width == 0 {
+			width := textWidth(col.Title)
 			for _, v := range data {
-				valLen := textWidth(tv.formatCell("table:row:", tv.Columns[i], v))
+				valLen := textWidth(tv.formatCell("table:row:", col, v))
 				if valLen > width {
 					width = valLen
 				}
-				if tv.Columns[i].MaxWidth > 0 && width > tv.Columns[i].MaxWidth {
-					width = tv.Columns[i].MaxWidth
+				if col.MaxWidth > 0 && width > col.MaxWidth {
+					width = col.MaxWidth
 				}
 			}
-			tv.columns[i].Width = width
+			col.Width = width
 			fixedWidth += width
-		} else {
-			tv.columns[i].Width = tv.Columns[i].Width
 		}
+		tv.columns = append(tv.columns, col)
 	}
-	restWidth := tv.MaxWidth - fixedWidth - len(tv.Columns) - 1
+	restWidth := tv.MaxWidth - fixedWidth - len(tv.columns) - 1
 
 	// calculate final width
 	width := 1
@@ -130,9 +144,6 @@ func (tv *Table) Print(data []map[string]interface{}) {
 			tv.columns[i].Width = restWidth * -tv.columns[i].Width / 100
 		}
 		if tv.columns[i].Width > 0 {
-			tv.columns[i].Title = tv.Columns[i].Title
-			tv.columns[i].Field = tv.Columns[i].Field
-			tv.columns[i].Align = tv.Columns[i].Align
 			width += tv.columns[i].Width
 		}
 		width++
@@ -183,7 +194,7 @@ func (tv *Table) Print(data []map[string]interface{}) {
 		for i, c := range tv.columns {
 			val := d[c.Field]
 			if c.Width > 0 {
-				valStr := tv.formatCell("table:row:", tv.Columns[i], d)
+				valStr := tv.formatCell("table:row:", tv.columns[i], d)
 				row.column("row", valStr, i, val)
 			} else {
 				row.column("row", "", i, val)
@@ -292,7 +303,7 @@ func (row *printRow) column(class, text string, col int, data interface{}) {
 	if row.offRow >= 0 {
 		row.bufRow.WriteRune(row.border[row.offRow+addRow])
 		if c.Width > 0 {
-			row.bufRow.WriteString(row.view.Styling("table:"+class+":"+c.Field, wrapLen(ellipsis(text, c.Width), c.Width, c.Align), data, row.view.Columns[col].Styler))
+			row.bufRow.WriteString(row.view.Styling("table:"+class+":"+c.Field, wrapLen(ellipsis(text, c.Width), c.Width, c.Align), data, c.Styler))
 		}
 	}
 }
